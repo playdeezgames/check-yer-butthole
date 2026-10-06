@@ -12,11 +12,13 @@ DEFAULT_NAME :: "n00b"
 START_XP_GOAL :: 100
 START_MAX_IRRITATION :: 100
 CRIT_ROLL_SIDES :: 100
+ITEM_COUNT_LIMIT :: i64(1) << 50
 
 Advancement :: enum {
 	Crit,
 	Thoroughness,
 	Irritation_Recovery,
+	Lost_And_Found, // the chance to find an item when checking
 }
 
 Advancement_Info :: struct {
@@ -33,6 +35,8 @@ thoroughness_costs := [?]int{5, 10, 15}
 thoroughness_effects := [?]int{1, 2, 3, 4}
 recovery_costs := [?]int{1, 2, 4, 8, 16, 32}
 recovery_effects := [?]int{60, 55, 50, 45, 40, 35, 30}
+find_costs := [?]int{2, 4, 8, 16, 32, 64}
+find_effects := [?]int{0, 1, 2, 3, 4, 5, 6}
 
 advancement_info := [Advancement]Advancement_Info {
 	.Crit = {
@@ -56,6 +60,35 @@ advancement_info := [Advancement]Advancement_Info {
 		costs = recovery_costs[:],
 		effects = recovery_effects[:],
 	},
+	.Lost_And_Found = {
+		key = "LostAndFound",
+		name = "Lost and Found",
+		description = "Everything you've lost has to be somewhere.",
+		costs = find_costs[:],
+		effects = find_effects[:],
+	},
+}
+
+// What a find can turn up. See docs/items-design.md for where each comes from.
+Item :: enum {
+	Banana,
+	Cheese,
+	Car_Keys,
+	Wedding_Ring,
+}
+
+Item_Info :: struct {
+	key:           string, // name in the save file
+	name:          string, // as shown in the inventory
+	found_message: string,
+	weight:        int, // chance of being the item found, relative to the others
+}
+
+item_info := [Item]Item_Info {
+	.Banana = {key = "Banana", name = "Banana", found_message = "You found a banana. Nobody asked for this.", weight = 600},
+	.Cheese = {key = "Cheese", name = "Cheese", found_message = "You found cheese. So that's where it went.", weight = 300},
+	.Car_Keys = {key = "CarKeys", name = "Car keys", found_message = "You found car keys. Somebody has been looking everywhere.", weight = 99},
+	.Wedding_Ring = {key = "WeddingRing", name = "Wedding ring", found_message = "You found a wedding ring. The wedding may now proceed.", weight = 1},
 }
 
 Message :: struct {
@@ -76,6 +109,7 @@ Player :: struct {
 	has_last_check: bool,
 	last_check_ms:  i64,
 	advancements:   [Advancement]int,
+	items:          [Item]i64, // how many of each have been found
 }
 
 Game :: struct {
@@ -203,6 +237,40 @@ is_crit :: proc(roll, crit_percent: int) -> bool {
 	return roll <= crit_percent
 }
 
+// A find happens when the roll (1..100) is at or below the Lost and Found
+// percentage, so level 0 never finds anything.
+is_find :: proc(roll, find_percent: int) -> bool {
+	return roll <= find_percent
+}
+
+item_weight_total :: proc() -> int {
+	total := 0
+	for info in item_info {
+		total += info.weight
+	}
+	return total
+}
+
+// Which item a roll of 1..item_weight_total() is: the weights are laid end to end.
+item_for_roll :: proc(roll: int) -> Item {
+	upto := 0
+	for item in Item {
+		upto += item_info[item].weight
+		if roll <= upto {
+			return item
+		}
+	}
+	return max(Item)
+}
+
+items_total :: proc(p: ^Player) -> i64 {
+	total: i64
+	for n in p.items {
+		total += n
+	}
+	return total
+}
+
 // Recover irritation for the time since the last check. The first check ever
 // only stamps the time. Partial progress is kept: the stamp moves forward by
 // whole intervals only (even when there is nothing to recover).
@@ -246,6 +314,15 @@ perform_check :: proc(g: ^Game, rng: ^Rng) {
 	p.checks += thoroughness
 	add_message(g, "+%d XP", thoroughness)
 	p.xp += thoroughness
+
+	// Lost and Found: only after a check that happened (a refused one returned above)
+	if is_find(rng_roll(rng, 1, CRIT_ROLL_SIDES), effect(p, .Lost_And_Found)) {
+		item := item_for_roll(rng_roll(rng, 1, item_weight_total()))
+		if p.items[item] < ITEM_COUNT_LIMIT {
+			p.items[item] += 1
+		}
+		add_message(g, "%s", item_info[item].found_message)
+	}
 }
 
 handle_levelling :: proc(g: ^Game) {

@@ -457,5 +457,159 @@ total_cost_to_max_matches_the_original_costs :: proc(t: ^testing.T) {
 		for buy(p, a) {}
 	}
 	spent := 1_000 - p.points
-	testing.expect_value(t, spent, (1 + 2 + 4 + 8 + 16 + 32) * 2 + (5 + 10 + 15))
+	testing.expect_value(t, spent, (1 + 2 + 4 + 8 + 16 + 32) * 2 + (5 + 10 + 15) + (2 + 4 + 8 + 16 + 32 + 64))
+}
+
+// ---- Lost and Found and items ----
+
+@(test)
+find_boundaries :: proc(t: ^testing.T) {
+	testing.expect(t, !is_find(1, 0), "0% must never find, even on a roll of 1")
+	testing.expect(t, is_find(1, 1))
+	testing.expect(t, !is_find(2, 1))
+	testing.expect(t, is_find(6, 6))
+	testing.expect(t, !is_find(7, 6))
+}
+
+@(test)
+item_weights_are_the_agreed_ones :: proc(t: ^testing.T) {
+	testing.expect_value(t, item_weight_total(), 1000)
+	// walk every possible roll: banana 60%, cheese 30%, car keys 9.9%, wedding ring 0.1%
+	counts: [Item]int
+	for roll in 1 ..= 1000 {
+		counts[item_for_roll(roll)] += 1
+	}
+	testing.expect_value(t, counts[.Banana], 600)
+	testing.expect_value(t, counts[.Cheese], 300)
+	testing.expect_value(t, counts[.Car_Keys], 99)
+	testing.expect_value(t, counts[.Wedding_Ring], 1)
+	// and the edges between them
+	testing.expect_value(t, item_for_roll(1), Item.Banana)
+	testing.expect_value(t, item_for_roll(600), Item.Banana)
+	testing.expect_value(t, item_for_roll(601), Item.Cheese)
+	testing.expect_value(t, item_for_roll(900), Item.Cheese)
+	testing.expect_value(t, item_for_roll(901), Item.Car_Keys)
+	testing.expect_value(t, item_for_roll(999), Item.Car_Keys)
+	testing.expect_value(t, item_for_roll(1000), Item.Wedding_Ring)
+}
+
+@(test)
+level_zero_never_finds_anything :: proc(t: ^testing.T) {
+	g := new_game()
+	r := seeded(11)
+	for i in 0 ..< 20_000 {
+		g.player.irritation = 0
+		check_butthole(&g, &r, T0)
+	}
+	testing.expect_value(t, items_total(&g.player), 0)
+}
+
+@(test)
+find_rate_matches_the_percentage :: proc(t: ^testing.T) {
+	g := new_game()
+	g.player.advancements[.Lost_And_Found] = 6 // 6%
+	r := seeded(21)
+	N :: 100_000
+	for _ in 0 ..< N {
+		g.player.irritation = 0
+		g.player.xp = 0
+		check_butthole(&g, &r, T0)
+	}
+	found := items_total(&g.player)
+	// 6% of 100000 is 6000; allow about 6 standard deviations
+	testing.expectf(t, found > 5_000 && found < 7_000, "found: %d", found)
+	// and in the agreed proportions: bananas well ahead of cheese, cheese well ahead of keys
+	testing.expect(t, g.player.items[.Banana] > g.player.items[.Cheese])
+	testing.expect(t, g.player.items[.Cheese] > 3 * g.player.items[.Car_Keys])
+	testing.expect(t, g.player.items[.Car_Keys] > g.player.items[.Wedding_Ring])
+}
+
+@(test)
+a_find_adds_to_the_count_and_says_so :: proc(t: ^testing.T) {
+	g := new_game()
+	g.player.advancements[.Lost_And_Found] = 6
+	r := seeded(3)
+	said := map[string]bool{}
+	defer delete(said)
+	for _ in 0 ..< 3_000 {
+		g.player.irritation = 0
+		before := items_total(&g.player)
+		check_butthole(&g, &r, T0)
+		after := items_total(&g.player)
+		testing.expect(t, after - before <= 1, "at most one item per check")
+		for item in Item {
+			if has_message(&g, item_info[item].found_message) {
+				testing.expect_value(t, after - before, 1)
+				said[item_info[item].found_message] = true
+			}
+		}
+		if after == before {
+			for item in Item {
+				testing.expect(t, !has_message(&g, item_info[item].found_message), "a message without a find")
+			}
+		}
+	}
+	testing.expect(t, said[item_info[Item.Banana].found_message])
+	testing.expect(t, said[item_info[Item.Cheese].found_message])
+	testing.expect(t, items_total(&g.player) > 100)
+}
+
+@(test)
+the_find_message_comes_after_the_xp_message :: proc(t: ^testing.T) {
+	g := new_game()
+	g.player.advancements[.Lost_And_Found] = 6
+	r := seeded(8)
+	for _ in 0 ..< 500 {
+		g.player.irritation = 0
+		g.player.xp = 0
+		check_butthole(&g, &r, T0)
+		for item in Item {
+			if has_message(&g, item_info[item].found_message) {
+				xp_at, found_at := -1, -1
+				for i in 0 ..< g.message_count {
+					text := message_text(&g.messages[i])
+					if text == "+1 XP" || text == "+2 XP" {
+						xp_at = i
+					}
+					if text == item_info[item].found_message {
+						found_at = i
+					}
+				}
+				testing.expect(t, xp_at >= 0 && found_at > xp_at)
+				return
+			}
+		}
+	}
+	testing.fail_now(t, "no find in 500 checks at 6%")
+}
+
+@(test)
+a_refused_check_never_finds_anything :: proc(t: ^testing.T) {
+	g := new_game()
+	g.player.advancements[.Lost_And_Found] = 6
+	r := seeded(4)
+	g.player.has_last_check = true
+	g.player.last_check_ms = T0
+	for _ in 0 ..< 5_000 {
+		g.player.irritation = 100
+		check_butthole(&g, &r, T0)
+	}
+	testing.expect_value(t, items_total(&g.player), 0)
+}
+
+@(test)
+item_counts_stop_at_the_limit :: proc(t: ^testing.T) {
+	g := new_game()
+	g.player.advancements[.Lost_And_Found] = 6
+	for item in Item {
+		g.player.items[item] = ITEM_COUNT_LIMIT
+	}
+	r := seeded(5)
+	for _ in 0 ..< 1_000 {
+		g.player.irritation = 0
+		check_butthole(&g, &r, T0)
+	}
+	for item in Item {
+		testing.expect_value(t, g.player.items[item], ITEM_COUNT_LIMIT)
+	}
 }

@@ -28,6 +28,13 @@ played_game :: proc() -> Game {
 		.Crit                = 4,
 		.Thoroughness        = 2,
 		.Irritation_Recovery = 6,
+		.Lost_And_Found      = 3,
+	}
+	p.items = {
+		.Banana       = 12,
+		.Cheese       = 3,
+		.Car_Keys     = 1,
+		.Wedding_Ring = 0,
 	}
 	add_message(&g, "line \"one\"")
 	add_message(&g, "tab\there\nnewline é 😀")
@@ -82,7 +89,7 @@ v2_text_has_the_expected_shape :: proc(t: ^testing.T) {
 	testing.expect_value(
 		t,
 		text,
-		`{"version":2,"name":"Bob","checks":0,"xp":0,"xp_goal":100,"level":0,"points":0,"irritation":0,"max_irritation":100,"last_check_ms":null,"advancements":{"Crit":2,"Thoroughness":0,"IrritationRecovery":0},"messages":[]}`,
+		`{"version":3,"name":"Bob","checks":0,"xp":0,"xp_goal":100,"level":0,"points":0,"irritation":0,"max_irritation":100,"last_check_ms":null,"advancements":{"Crit":2,"Thoroughness":0,"IrritationRecovery":0,"LostAndFound":0},"items":{"Banana":0,"Cheese":0,"CarKeys":0,"WeddingRing":0},"messages":[]}`,
 	)
 }
 
@@ -123,8 +130,14 @@ v2_rejects_bad_saves :: proc(t: ^testing.T) {
 		"null",
 		good[:len(good) - 1], // truncated
 		strings.concatenate({good, "x"}, context.temp_allocator), // trailing garbage
-		swap(good, `"version":2`, `"version":3`),
-		swap(good, `"version":2`, `"version":"2"`),
+		swap(good, `"version":3`, `"version":4`),
+		swap(good, `"version":3`, `"version":1`),
+		swap(good, `"version":3`, `"version":"3"`),
+		swap(good, `"WeddingRing":0`, `"WeddingRing":-1`),
+		swap(good, `"items":{`, `"items":[`),
+		swap(good, `"Banana":12,`, ``), // missing item
+		swap(good, `"Banana":12`, `"Banana":"12"`),
+		swap(good, `"LostAndFound":3`, `"LostAndFound":7`),
 		swap(good, `"checks":1234,`, ``), // missing field
 		swap(good, `"xp":56`, `"xp":"56"`), // wrong type
 		swap(good, `"xp":56`, `"xp":5.5`), // not a whole number
@@ -362,7 +375,7 @@ load_game_picks_the_right_source :: proc(t: ^testing.T) {
 mutated_saves_never_crash_and_always_validate :: proc(t: ^testing.T) {
 	g := played_game()
 	buf: [SAVE_BUF_SIZE]u8
-	sources := [?]string{strings.clone(write(&g, buf[:]), context.temp_allocator), OLD_MIDGAME}
+	sources := [?]string{strings.clone(write(&g, buf[:]), context.temp_allocator), OLD_MIDGAME, SHIPPED_V2}
 	alphabet := "{}[]\",:-0159.eE\\ntfu"
 	r := seeded(2026)
 	accepted := 0
@@ -403,14 +416,14 @@ mutated_saves_never_crash_and_always_validate :: proc(t: ^testing.T) {
 the_empty_marker_stops_the_old_save_coming_back :: proc(t: ^testing.T) {
 	buf: [SAVE_BUF_SIZE]u8
 	marker := save_write_empty(buf[:])
-	testing.expect_value(t, marker, `{"version":2,"empty":true}`)
+	testing.expect_value(t, marker, `{"version":3,"empty":true}`)
 	out: Game
 	// found in the browser: after Abandon, a reload used to migrate the old save again
 	testing.expect_value(t, load_game(&out, marker, OLD_MIDGAME), Load_Source.Fresh)
 	testing.expect(t, !out.has_avatar)
 	testing.expect_value(t, load_game(&out, marker, ""), Load_Source.Fresh)
 	// only a literal true counts; anything else is an ordinary (invalid) v2 save
-	for bad in ([]string{`{"version":2,"empty":false}`, `{"version":2,"empty":"true"}`, `{"version":2,"empty":1}`, `{"version":3,"empty":true}`, `{"empty":true}`}) {
+	for bad in ([]string{`{"version":2,"empty":false}`, `{"version":2,"empty":"true"}`, `{"version":2,"empty":1}`, `{"version":4,"empty":true}`, `{"empty":true}`}) {
 		testing.expect_value(t, load_game(&out, bad, OLD_MIDGAME), Load_Source.Rejected_V2)
 	}
 }
@@ -444,4 +457,74 @@ another_games_world_data_is_not_migrated :: proc(t: ^testing.T) {
 	testing.expect_value(t, migrate_v1(&out, others[0]), Migrate_Result.Not_Ours)
 	testing.expect_value(t, load_game(&out, "", others[0]), Load_Source.Fresh)
 	testing.expect_value(t, load_game(&out, "", others[1]), Load_Source.Fresh)
+}
+
+// ---- saves written by the shipped (version 2) game must still load ----
+
+// A real save, copied from the live game's localStorage during the playtest:
+// no Lost and Found advancement, no items.
+SHIPPED_V2 :: `{"version":2,"name":"Orig Player","checks":32,"xp":32,"xp_goal":100,"level":0,"points":9,"irritation":31,"max_irritation":100,"last_check_ms":1791280975878,"advancements":{"Crit":2,"Thoroughness":1,"IrritationRecovery":2},"messages":["You check yer butthole!","+1 irritation","+2 XP"]}`
+
+@(test)
+a_shipped_v2_save_still_loads :: proc(t: ^testing.T) {
+	out: Game
+	testing.expect_value(t, load_game(&out, SHIPPED_V2, OLD_MIDGAME), Load_Source.V2)
+	p := &out.player
+	testing.expect_value(t, player_name(p), "Orig Player")
+	testing.expect_value(t, p.checks, 32)
+	testing.expect_value(t, p.points, 9)
+	testing.expect_value(t, p.advancements[.Crit], 2)
+	testing.expect_value(t, p.advancements[.Irritation_Recovery], 2)
+	testing.expect_value(t, p.advancements[.Lost_And_Found], 0)
+	testing.expect_value(t, items_total(p), 0)
+	testing.expect_value(t, p.last_check_ms, 1791280975878)
+	testing.expect_value(t, out.message_count, 3)
+}
+
+@(test)
+a_shipped_v2_save_is_upgraded_when_saved_again :: proc(t: ^testing.T) {
+	out: Game
+	testing.expect(t, save_read(&out, SHIPPED_V2))
+	buf: [SAVE_BUF_SIZE]u8
+	text := write(&out, buf[:])
+	testing.expect(t, strings.has_prefix(text, `{"version":3,`))
+	testing.expect(t, strings.contains(text, `"LostAndFound":0`))
+	testing.expect(t, strings.contains(text, `"items":{"Banana":0,"Cheese":0,"CarKeys":0,"WeddingRing":0}`))
+	again: Game
+	testing.expect(t, save_read(&again, text))
+	same_game(t, &out, &again)
+}
+
+@(test)
+a_v2_save_may_not_claim_items_it_cannot_have :: proc(t: ^testing.T) {
+	// extra keys in a v2 save are ignored, not trusted: the items stay at zero
+	text, _ := strings.replace(SHIPPED_V2, `"messages"`, `"items":{"Banana":99},"messages"`, 1, context.temp_allocator)
+	out: Game
+	testing.expect(t, save_read(&out, text))
+	testing.expect_value(t, items_total(&out.player), 0)
+}
+
+@(test)
+items_survive_a_round_trip :: proc(t: ^testing.T) {
+	g := played_game()
+	buf: [SAVE_BUF_SIZE]u8
+	out: Game
+	testing.expect(t, save_read(&out, write(&g, buf[:])))
+	testing.expect_value(t, out.player.items[.Banana], 12)
+	testing.expect_value(t, out.player.items[.Cheese], 3)
+	testing.expect_value(t, out.player.items[.Car_Keys], 1)
+	testing.expect_value(t, out.player.items[.Wedding_Ring], 0)
+	testing.expect_value(t, out.player.advancements[.Lost_And_Found], 3)
+}
+
+@(test)
+absurd_item_counts_are_rejected :: proc(t: ^testing.T) {
+	g := played_game()
+	buf: [SAVE_BUF_SIZE]u8
+	good := strings.clone(write(&g, buf[:]), context.temp_allocator)
+	for count in ([]string{"1125899906842625", "9007199254740992", "-1", "1.5"}) {
+		text, _ := strings.replace(good, `"Banana":12`, strings.concatenate({`"Banana":`, count}, context.temp_allocator), 1, context.temp_allocator)
+		out: Game
+		testing.expectf(t, !save_read(&out, text), "accepted a Banana count of %s", count)
+	}
 }

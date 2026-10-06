@@ -54,6 +54,7 @@ Action :: enum int {
 	Abandon_Game,
 	Yes,
 	No,
+	Inventory,
 }
 
 ACTION_SELECT :: 100
@@ -67,6 +68,7 @@ Screen :: enum {
 	Advancement_Details,
 	Game_Menu,
 	Confirm_Abandon,
+	Inventory,
 }
 
 App :: struct {
@@ -114,6 +116,8 @@ effect_text :: proc(a: Advancement, level: int, buf: []u8) -> string {
 		return fmt.bprintf(buf, "Checks per click: %d", n)
 	case .Irritation_Recovery:
 		return fmt.bprintf(buf, "Irritation Recovery Rate %ds", n)
+	case .Lost_And_Found:
+		return fmt.bprintf(buf, "Item find chance %d%%", n)
 	}
 	return ""
 }
@@ -157,7 +161,22 @@ draw_neutral :: proc(app: ^App) {
 	view_add(v, .Paragraph, "Butthole Checks: %d", p.checks)
 	add_button(v, int(Action.Check), "Check Butthole")
 	add_button(v, int(Action.Advancements), "Advancements")
+	if items_total(p) > 0 {
+		add_button(v, int(Action.Inventory), "Inventory") // only once something has been found
+	}
 	add_button(v, int(Action.Game_Menu), "Game Menu")
+}
+
+draw_inventory :: proc(app: ^App) {
+	v := &app.view
+	p := &app.game.player
+	view_add(v, .Heading2, "Inventory:")
+	for item in Item {
+		if p.items[item] > 0 {
+			view_add(v, .Paragraph, "%s: %d", item_info[item].name, p.items[item])
+		}
+	}
+	add_button(v, int(Action.Go_Back), "Go Back")
 }
 
 draw_advancements :: proc(app: ^App) {
@@ -233,6 +252,8 @@ app_draw :: proc(app: ^App) {
 		draw_game_menu(app)
 	case .Confirm_Abandon:
 		draw_confirm_abandon(app)
+	case .Inventory:
+		draw_inventory(app)
 	}
 }
 
@@ -290,6 +311,14 @@ app_click :: proc(app: ^App, id: int, input: string, now_ms: i64) {
 			app.screen = .Advancements
 		case .Game_Menu:
 			app.screen = .Game_Menu
+		case .Inventory:
+			if items_total(p) > 0 {
+				app.screen = .Inventory
+			}
+		}
+	case .Inventory:
+		if action == .Go_Back {
+			enter_neutral(app)
 		}
 	case .Advancements:
 		if id >= ACTION_SELECT && id < ACTION_SELECT + len(Advancement) {

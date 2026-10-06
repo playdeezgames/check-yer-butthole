@@ -10,7 +10,7 @@ package cyb
 import "core:fmt"
 import "core:unicode/utf8"
 
-SAVE_VERSION :: 2
+SAVE_VERSION :: 3 // v2 saves (before items) are still read
 SAVE_KEY :: "cyb:save"
 OLD_SAVE_KEY :: "worldData"
 SAVE_BUF_SIZE :: 16384
@@ -18,7 +18,7 @@ VALUE_LIMIT :: i64(1) << 50
 
 Load_Source :: enum {
 	Fresh, // nothing usable to load, or the player abandoned the game (no avatar)
-	V2, // loaded a game from the v2 save
+	V2, // loaded a game from a v2 or v3 save
 	Migrated_V1, // converted the original game's save
 	Rejected_V2, // a v2 save exists but is invalid; fresh game, the save is untouched
 	Rejected_V1, // an old save exists but is invalid; fresh game, the save is untouched
@@ -52,6 +52,11 @@ game_valid :: proc(g: ^Game) -> bool {
 	}
 	if p.has_last_check && p.last_check_ms < 0 {
 		return false
+	}
+	for n in p.items {
+		if !in_range(n, 0, ITEM_COUNT_LIMIT) {
+			return false
+		}
 	}
 	if g.message_count < 0 || g.message_count > MAX_MESSAGES {
 		return false
@@ -101,6 +106,16 @@ save_write :: proc(g: ^Game, buf: []u8) -> (text: string, ok: bool) {
 		json_raw(&w, "\":")
 		json_int_out(&w, i64(p.advancements[a]))
 	}
+	json_raw(&w, "},\"items\":{")
+	for item in Item {
+		if item != min(Item) {
+			json_raw(&w, ",")
+		}
+		json_raw(&w, "\"")
+		json_raw(&w, item_info[item].key)
+		json_raw(&w, "\":")
+		json_int_out(&w, p.items[item])
+	}
 	json_raw(&w, "},\"messages\":[")
 	for i in 0 ..< g.message_count {
 		if i > 0 {
@@ -145,7 +160,7 @@ need_int :: proc(doc: ^Json_Doc, obj: int, key: string) -> (i64, bool) {
 	return json_int(doc, json_get(doc, obj, key))
 }
 
-// Parses a v2 save into out (an empty Game for the abandon marker). out is only
+// Parses a v2 or v3 save into out (an empty Game for the abandon marker). out is only
 // touched when the result is true.
 save_read :: proc(out: ^Game, text: string) -> bool {
 	doc := new(Json_Doc)
@@ -158,7 +173,7 @@ save_read :: proc(out: ^Game, text: string) -> bool {
 		return false
 	}
 	version, vok := need_int(doc, root, "version")
-	if !vok || version != SAVE_VERSION {
+	if !vok || (version != 2 && version != SAVE_VERSION) {
 		return false
 	}
 	if marker := json_get(doc, root, "empty"); json_kind(doc, marker) == .Bool && doc.nodes[marker].boolean {
@@ -199,11 +214,23 @@ save_read :: proc(out: ^Game, text: string) -> bool {
 		return false
 	}
 	for a in Advancement {
+		if a == .Lost_And_Found && version == 2 {
+			continue // added in v3; a v2 save has none, which is level 0
+		}
 		level: i64
 		if level, ok = need_int(doc, advs, advancement_info[a].key); !ok || level < 0 || level > i64(advancement_max_level(a)) {
 			return false // checked before narrowing to int
 		}
 		p.advancements[a] = int(level)
+	}
+	if version == SAVE_VERSION {
+		items := json_get(doc, root, "items")
+		if json_kind(doc, items) != .Object {
+			return false
+		}
+		for item in Item {
+			if p.items[item], ok = need_int(doc, items, item_info[item].key); !ok {return false}
+		}
 	}
 	load_messages(&g, doc, json_get(doc, root, "messages"))
 	if !game_valid(&g) {
