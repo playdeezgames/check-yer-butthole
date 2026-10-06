@@ -30,7 +30,7 @@
 
 ## Future expansion (not for the first parity update)
 
-- **Items upgrade.** Items to find while checking: car keys, wedding ring, banana, cheese. **Lore for how they relate is not written yet. Ask the user to flesh it out before designing anything** (where they come from, why they are there, what each does, how they tie into the game's metaphor). Also an idea from a player comment: "find an item every now and then".
+- **Items upgrade** (car keys, wedding ring, banana, cheese). **Designed with the user, not built yet: see `docs/items-design.md`.** The lore is settled (the song "H.Y.C.Y.BH", *Who Moved My Cheese?*, and a banana song). What the items are *for* is deliberately undefined, so do not invent it; ask. A player comment asked for "find an item every now and then".
 - A winning screen (a player asked "Is there a winning screen?"). Ask the user first; the lack of one may be the joke.
 
 ## Phase 8 checklist (the user does these, or says "push")

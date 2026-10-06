@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Crit chance is a purchased stat: level 0 is 0%, so it never crits. The original's `roll` bug is fixed, everything else is faithful.
 - Saves migrate one way from the old `worldData` key to a `version: 2` save under the key `cyb:save`, silently (also when a save is rejected: start fresh, no message). Never delete the old key or a save that fails validation. Abandoning stores an empty marker (`save_write_empty`) in `cyb:save` instead of removing it, otherwise the old save is migrated back in on the next load.
 - The name is unchanged: tab title "Check Yer B*tth*le! THE GAME", menu "Check Yer B*tthole, THE GAME". No "of SPLORR!!".
-- Port first, ship, then extend. Ask the user before adding features. The first planned extension is the items upgrade (car keys, wedding ring, banana, cheese); the lore is not written, so ask the user before designing it.
+- Port first, ship, then extend. Ask the user before adding features. The next planned extension is the items upgrade (car keys, wedding ring, banana, cheese), designed in `docs/items-design.md`; read it before touching items, and ask the user about anything it lists as not decided.
 
 ## Commands
 

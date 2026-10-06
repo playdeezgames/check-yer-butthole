@@ -69,7 +69,7 @@ JSON text under the key `cyb:save`:
 6. **Web shim.** `main_js.odin`, `web/index.html`; DOM glue, storage, tick. Serve on a port that is not 8765 and check who owns it first.
 7. **Playtest.** Real key presses and clicks in the browser pane at desktop and phone widths; migrate a hand-made old save; verify recovery across a closed tab.
 8. **Ship (only when asked).** Update `ITCH_DESCRIPTION.md` and the AI disclosure, commit, then `butler push` to the existing page. Confirm the slug on the live page first. Check the live page afterwards in the browser pane.
-9. **Extend (later).** Features chosen with the user, each as its own step. First on the list is the **items upgrade** (car keys, wedding ring, banana, cheese). The lore connecting them has to come from the user before any design; see `TODO.md`.
+9. **Extend (later).** Features chosen with the user, each as its own step. First on the list is the **items upgrade** (car keys, wedding ring, banana, cheese); see `docs/items-design.md`.
 
 ## Settled after the first pass
 
