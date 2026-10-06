@@ -1,0 +1,3 @@
+const ADVANCEMENT_TYPE_CRIT = "Crit";
+const ADVANCEMENT_TYPE_THOROUGHNESS = "Thoroughness";
+const ADVANCEMENT_TYPE_IRRITATION_RECOVERY = "IrritationRecovery";

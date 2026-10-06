@@ -1,0 +1,1 @@
+const CHARACTERTYPE_N00B = "N00b";

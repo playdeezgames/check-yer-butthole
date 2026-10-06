@@ -1,0 +1,106 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Check Yer B*tth*le! THE GAME</title>
+<script type="text/javascript" src="odin.js"></script>
+</head>
+<body>
+<script>
+"use strict";
+// Glue between game.wasm and the page. The game owns all state; this file only
+// draws what it is told to draw (as real DOM elements) and reaches storage and the clock.
+(function () {
+	const memory = new odin.WasmMemoryInterface();
+	const decoder = new TextDecoder();
+	const encoder = new TextEncoder();
+
+	// Must match Element_Kind in odin/ui.odin
+	const KINDS = ["h1", "h2", "h3", "p", "timestamp", "button", "br", "field"];
+
+	let nameInput = null;
+
+	const bytes = (ptr, len) => new Uint8Array(memory.memory.buffer, ptr, len);
+	const text = (ptr, len) => decoder.decode(bytes(ptr, len));
+	const clearBody = () => { while (document.body.firstChild) document.body.removeChild(document.body.firstChild); };
+
+	const env = {
+		dom_clear() {
+			clearBody();
+			nameInput = null;
+		},
+		dom_add(kind, id, ms, ptr, len) {
+			const s = text(ptr, len);
+			switch (KINDS[kind]) {
+				case "h1": case "h2": case "h3": case "p": {
+					const e = document.createElement(KINDS[kind]);
+					e.textContent = s;
+					document.body.appendChild(e);
+					break;
+				}
+				case "timestamp": {
+					const e = document.createElement("p");
+					e.textContent = s + new Date(ms).toLocaleString();
+					document.body.appendChild(e);
+					break;
+				}
+				case "button": {
+					const e = document.createElement("button");
+					e.textContent = s;
+					e.addEventListener("click", () => memory.exports.on_click(id));
+					document.body.appendChild(e);
+					break;
+				}
+				case "br":
+					document.body.appendChild(document.createElement("br"));
+					break;
+				case "field": {
+					const p = document.createElement("p");
+					const span = document.createElement("span");
+					span.textContent = s;
+					nameInput = document.createElement("input");
+					nameInput.maxLength = 64;
+					p.appendChild(span);
+					p.appendChild(nameInput);
+					document.body.appendChild(p);
+					break;
+				}
+			}
+		},
+		read_name(ptr, cap) {
+			if (!nameInput) return 0;
+			return encoder.encodeInto(nameInput.value, bytes(ptr, cap)).written;
+		},
+		storage_get(kptr, klen, ptr, cap) {
+			try {
+				const value = localStorage.getItem(text(kptr, klen));
+				if (value === null) return -1;
+				const data = encoder.encode(value);
+				if (data.length <= cap) bytes(ptr, data.length).set(data);
+				return data.length;
+			} catch (e) {
+				return -1;
+			}
+		},
+		storage_set(kptr, klen, vptr, vlen) {
+			try { localStorage.setItem(text(kptr, klen), text(vptr, vlen)); } catch (e) { console.warn("could not save", e); }
+		},
+		now_ms() { return Date.now(); },
+		entropy() { return Math.floor(Math.random() * 9007199254740992); },
+		console_log(ptr, len) { console.log(text(ptr, len)); },
+	};
+
+	function start() {
+		odin.runWasm("game.wasm", null, { env }, memory).catch((e) => {
+			clearBody();
+			document.body.textContent = "Could not start the game: " + e;
+			console.error(e);
+		});
+	}
+	if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
+	else start();
+})();
+</script>
+</body>
+</html>

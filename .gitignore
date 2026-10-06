@@ -1,0 +1,5 @@
+odin/out/
+odin/odin
+build/
+*.zip.tmp
+.vscode/
