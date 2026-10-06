@@ -9,7 +9,7 @@
 - [x] Phase 5: UI screens (67 tests passing; `ui.odin`, `View` replayed by the platform)
 - [x] Phase 6: web shim (`main_js.odin`, `web/index.html`; smoke-tested in the browser pane: title, start, embark, check, save, reload, Continue)
 - [x] Phase 7: playtest (real browser; see `docs/playtest-2026-10-06.md`)
-- [ ] Phase 8: ship (only when asked)
+- [ ] Phase 8: ship (copy and devlog written, zip builds; the push and the page edits are the user's call)
 
 ## Carry forward
 
@@ -32,3 +32,11 @@
 
 - **Items upgrade.** Items to find while checking: car keys, wedding ring, banana, cheese. **Lore for how they relate is not written yet. Ask the user to flesh it out before designing anything** (where they come from, why they are there, what each does, how they tie into the game's metaphor). Also an idea from a player comment: "find an item every now and then".
 - A winning screen (a player asked "Is there a winning screen?"). Ask the user first; the lack of one may be the joke.
+
+## Phase 8 checklist (the user does these, or says "push")
+
+- [ ] Review `ITCH_DESCRIPTION.md` and `devlog/20261006/devlog.md`; edit freely
+- [ ] `./shippit.sh --push` (only when the user says so; creates the `html` channel)
+- [ ] On the itch page: remove the old zip upload, tick "This file will be played in the browser" on the new one, set the embed size
+- [ ] Paste the description, post the devlog
+- [ ] Check the live page in the browser pane afterwards (text, embed, first key press, saves, a migration with a real old save)
