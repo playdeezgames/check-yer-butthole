@@ -22,4 +22,6 @@ One thing changed on purpose: the critical check chance was off by about one per
 
 The original game, the design and the jokes are mine. This Odin and WebAssembly version was written in conversation with Claude Code (Claude Sonnet 5.5), which did the typing. The source is at https://github.com/playdeezgames/check-yer-butthole and it is MIT licensed.
 
+The whole game is a nod to the song ["H.Y.C.Y.BH"](https://en.wikipedia.org/wiki/H.Y.C.Y.BH) ("Have You Checked Your Butthole?") by Tom Cardy (2021). The things you can find are nods too. The car keys and the wedding ring come from that song, the cheese comes from the book [*Who Moved My Cheese?*](https://en.wikipedia.org/wiki/Who_Moved_My_Cheese%3F) by Spencer Johnson (1998), and the banana comes from the song ["Don't Put Bananas In My Butt"](https://genius.com/Biff-the-dinosaur-and-outerscope-dont-put-bananas-in-my-butt-lyrics) by Biff the Dinosaur and Outerscope (2026). I made none of those, and I am grateful to the people who did.
+
 Thanks for checking.
