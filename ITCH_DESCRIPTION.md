@@ -13,11 +13,13 @@ Yer butthole needs checking. Click the button. That's the game.
 - Yer progress is saved in yer browser. Close the tab, come back, hit Continue.
 
 **ABOUT**
+
 Written by me in June 2025 in plain JavaScript, as a game about a thing that nobody asked for. For this release it was rebuilt in Odin and compiled to WebAssembly, so it runs in yer browser the same way, with the same buttons and the same plain look. Saves from the old version carry over.
 
 One thing changed on purpose: the critical check chance was off by about one percent, so even with no upgrades you could crit now and then. Now Critical Check % is an upgrade you actually buy, and with none, you get none.
 
 **CREDITS**
+
 The original game, the design and the jokes are mine. This Odin and WebAssembly version was written in conversation with Claude Code (Claude Sonnet 5.5), which did the typing. The source is at https://github.com/playdeezgames/check-yer-butthole and it is MIT licensed.
 
 Thanks for checking.
