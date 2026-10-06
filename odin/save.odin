@@ -216,6 +216,7 @@ save_read :: proc(out: ^Game, text: string) -> bool {
 Migrate_Result :: enum {
 	Ok,
 	No_Avatar, // a valid old save with no character yet: same as a fresh game
+	Not_Ours, // looks like another game's `worldData` (itch.io games share one localStorage)
 	Invalid,
 }
 
@@ -269,6 +270,12 @@ migrate_v1 :: proc(out: ^Game, text: string) -> Migrate_Result {
 	if json_kind(doc, stats) != .Object {
 		return .Invalid
 	}
+	// Every game on itch.io shares one localStorage, and the original's key is a
+	// generic one. Only this game's character has a ButtholeChecks statistic
+	// (possibly null, if it was once NaN); anything without it is someone else's.
+	if json_get(doc, stats, "ButtholeChecks") == 0 {
+		return .Not_Ours
+	}
 	ok: bool
 	if p.checks, ok = old_stat(doc, stats, "ButtholeChecks", 0); !ok {return .Invalid}
 	if p.xp, ok = old_stat(doc, stats, "ExperiencePoints", 0); !ok {return .Invalid}
@@ -321,7 +328,7 @@ load_game :: proc(g: ^Game, v2_text, v1_text: string) -> Load_Source {
 		switch migrate_v1(g, v1_text) {
 		case .Ok:
 			return .Migrated_V1
-		case .No_Avatar:
+		case .No_Avatar, .Not_Ours:
 			return .Fresh
 		case .Invalid:
 			return .Rejected_V1

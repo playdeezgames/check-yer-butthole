@@ -271,7 +271,7 @@ migration_cleans_up_names_and_messages :: proc(t: ^testing.T) {
 	msgs := strings.repeat(`"m",`, 30, context.temp_allocator)
 	text := strings.concatenate(
 		{
-			`{"characters":[{"statistics":{},"advancements":{},"name":"   "}],"messages":[`,
+			`{"characters":[{"statistics":{"ButtholeChecks":0},"advancements":{},"name":"   "}],"messages":[`,
 			msgs,
 			`"`,
 			long,
@@ -284,7 +284,7 @@ migration_cleans_up_names_and_messages :: proc(t: ^testing.T) {
 	testing.expect_value(t, player_name(&out.player), "n00b")
 	testing.expect_value(t, out.message_count, MAX_MESSAGES)
 
-	text2 := strings.concatenate({`{"characters":[{"statistics":{},"name":"`, long, `"}],"avatarCharacterId":0}`}, context.temp_allocator)
+	text2 := strings.concatenate({`{"characters":[{"statistics":{"ButtholeChecks":0},"name":"`, long, `"}],"avatarCharacterId":0}`}, context.temp_allocator)
 	testing.expect_value(t, migrate_v1(&out, text2), Migrate_Result.Ok)
 	testing.expect(t, out.player.name_len <= NAME_MAX)
 	testing.expect_value(t, out.player.name_len % 2, 0)
@@ -423,4 +423,25 @@ a_new_game_replaces_the_marker :: proc(t: ^testing.T) {
 	out: Game
 	testing.expect_value(t, load_game(&out, text, OLD_MIDGAME), Load_Source.V2)
 	same_game(t, &g, &out)
+}
+
+// itch.io games all share one localStorage, and `worldData` is a generic key.
+@(test)
+another_games_world_data_is_not_migrated :: proc(t: ^testing.T) {
+	others := []string {
+		`{"characters":[{"name":"Hero","statistics":{"Gold":5,"Health":10}}],"messages":[],"avatarCharacterId":0}`,
+		`{"characters":[{"name":"Hero","statistics":{}}],"messages":[],"avatarCharacterId":0}`,
+		`{"characters":[{"name":"Hero"}],"avatarCharacterId":0}`,
+	}
+	for text, i in others {
+		out: Game
+		testing.expectf(t, migrate_v1(&out, text) == .Not_Ours || migrate_v1(&out, text) == .Invalid, "case %d was migrated", i)
+		testing.expect(t, !out.has_avatar)
+		testing.expect_value(t, load_game(&out, "", text) == .Migrated_V1, false)
+		testing.expect(t, !out.has_avatar)
+	}
+	out: Game
+	testing.expect_value(t, migrate_v1(&out, others[0]), Migrate_Result.Not_Ours)
+	testing.expect_value(t, load_game(&out, "", others[0]), Load_Source.Fresh)
+	testing.expect_value(t, load_game(&out, "", others[1]), Load_Source.Fresh)
 }
