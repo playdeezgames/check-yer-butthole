@@ -9,7 +9,8 @@ Yer butthole needs checking. Click the button. That's the game.
 - Yer butthole can only take so much. At 100 irritation it is too irritated, and you get nothing until it calms down.
 - Irritation recovers with real time, one point per minute to start with, even while the tab is closed. The number on screen catches up the next time you check, and the page tells you when the next recovery is due.
 - Gain enough XP and you level up. Every level gives advancement points, and each level takes twice as much XP as the last.
-- Spend the points on advancements: Critical Check % (a chance for a check to count double), Thoroughness (more XP per check) and Irritation Recovery (a faster calm down).
+- Spend the points on advancements: Critical Check % (a chance for a check to count double), Thoroughness (more XP per check), Irritation Recovery (a faster calm down) and Lost and Found (a chance to turn something up while you check).
+- Whatever you find goes in the Inventory, which shows up after yer first find. Finds stack, and some are far rarer than others. What they are for is a question for later.
 - Yer progress is saved in yer browser. Close the tab, come back, hit Continue.
 
 **ABOUT**
