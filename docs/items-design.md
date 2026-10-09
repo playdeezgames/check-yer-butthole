@@ -34,7 +34,7 @@ Do not reproduce lyrics anywhere in the game, the page or the docs; paraphrase o
 - **What the items are for.** The user said the good items "become part of the inventory and then lead to another aspect of the game later on", and that each thing is to be defined later. Until then they only count.
 - **What the banana does** as a hazard beyond sitting in the inventory.
 - **A winning screen** (a player asked for one; the lack may be the joke).
-- **Credit for the references** (Tom Cardy, Spencer Johnson, Biff the Dinosaur & Outerscope) on the itch page. A user decision.
+- ~~Credit for the references~~ Decided and shipped: credits plus a parody notice (`NOTICE.md`, the itch description, the README).
 
 ## Technical notes (for whoever builds it)
 

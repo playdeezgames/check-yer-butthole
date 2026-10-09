@@ -25,4 +25,8 @@ The original game, the design and the jokes are mine. This Odin and WebAssembly 
 
 The whole game is a nod to the song ["H.Y.C.Y.BH"](https://en.wikipedia.org/wiki/H.Y.C.Y.BH) ("Have You Checked Your Butthole?") by Tom Cardy (2021). The things you can find are nods too. The car keys and the wedding ring come from that song, the cheese comes from the book [*Who Moved My Cheese?*](https://en.wikipedia.org/wiki/Who_Moved_My_Cheese%3F) by Spencer Johnson (1998), and the banana comes from the song ["Don't Put Bananas In My Butt"](https://genius.com/Biff-the-dinosaur-and-outerscope-dont-put-bananas-in-my-butt-lyrics) by Biff the Dinosaur and Outerscope (2026). I made none of those, and I am grateful to the people who did.
 
+**PARODY NOTICE**
+
+Check Yer B*tthole, THE GAME is a parody. Its references to other works (the song "H.Y.C.Y.BH" by Tom Cardy, the book *Who Moved My Cheese?* by Spencer Johnson, and the song "Don't Put Bananas In My Butt" by Biff the Dinosaur and Outerscope) are made in that spirit, as humor and commentary, and are intended as fair use under parody. The game reproduces no recordings, artwork or passages of those works. It is not affiliated with or endorsed by their creators or publishers, and all titles and trademarks belong to their owners.
+
 Thanks for checking.

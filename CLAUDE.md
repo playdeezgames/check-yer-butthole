@@ -12,6 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Crit chance is a purchased stat: level 0 is 0%, so it never crits. The original's `roll` bug is fixed, everything else is faithful.
 - Saves migrate one way from the old `worldData` key to a versioned save (now `version: 3`; version 2 saves from the shipped game still load) under the key `cyb:save`, silently (also when a save is rejected: start fresh, no message). Never delete the old key or a save that fails validation. Abandoning stores an empty marker (`save_write_empty`) in `cyb:save` instead of removing it, otherwise the old save is migrated back in on the next load.
 - The name is unchanged: tab title "Check Yer B*tth*le! THE GAME", menu "Check Yer B*tthole, THE GAME". No "of SPLORR!!".
+- Keep the parody notice (itch description, README, NOTICE.md) in step with each other, and never quote lyrics or passages from the referenced works anywhere (game, pages, docs); describe them in the author's own words. Any new reference to someone else's work needs the user's say-so and a line in NOTICE.md.
 - Port first, ship, then extend. Ask the user before adding features. The next planned extension is the items upgrade (car keys, wedding ring, banana, cheese), designed in `docs/items-design.md`; read it before touching items, and ask the user about anything it lists as not decided.
 
 ## Commands
